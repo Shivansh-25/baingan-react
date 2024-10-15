@@ -3,16 +3,12 @@ import dotenv from "dotenv";
 
 dotenv.config();
 
-const generateJWT = (user) => {
-  
-  return jwt.sign(
-    {
-      id: user.id,
-      email: user.email,
-    },
-    process.env.JWT_SECRET,
-    { expiresIn: '1h' }
-  );
+const generateAccessToken = (uid) => {
+  return jwt.sign({ uid }, process.env.JWT_SECRET, { expiresIn: '1h' });
 };
 
-export default generateJWT;
+const generateRefreshToken = (uid) => {
+  return jwt.sign({ uid }, process.env.REFRESH_TOKEN_SECRET, { expiresIn: '7d' });
+} 
+
+export { generateAccessToken, generateRefreshToken };

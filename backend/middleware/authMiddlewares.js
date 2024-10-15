@@ -1,42 +1,33 @@
 import jwt from 'jsonwebtoken';
-import redisClient from '../database-config/redis-client.js';
 import dotenv from 'dotenv';
+import { db } from '../database-config/database-config.js';
+
 dotenv.config();
 
+const { JWT_SECRET } = process.env;
+
 const authMiddleware = async (req, res, next) => {
-  const authHeader = req.headers['authorization'];
-
-  // Check if Authorization header is present
-  if (!authHeader) {
-    return res.status(401).json({ error: 'Authorization header missing' });
-  }
-
-  // Extract token from header (Assuming format: "Bearer <token>")
-  const token = authHeader.split(' ')[1];
+  const token = req.cookies.token;
 
   if (!token) {
-    return res.status(401).json({ error: 'Token missing from Authorization header' });
+    return res.status(401).json({ error: 'Authentication token missing' });
   }
 
   try {
-    // Verify JWT
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    const uid = decoded.uid;
+    const decoded = jwt.verify(token, JWT_SECRET);
+    const { uid } = decoded;
 
-    // Check if token exists in Redis
-    const cachedToken = await redisClient.get(uid);
+    const user = await db.collection('users').doc(uid).get();
 
-    if (!cachedToken || cachedToken !== token) {
-      return res.status(401).json({ error: 'Invalid or expired token' });
+    if (!user.exists) {
+      return res.status(404).json({ error: 'User not found' });
     }
 
-    // Attach user info to request object for further use
     req.user = { uid };
-
     next();
   } catch (error) {
-    console.error('Error in authMiddleware:', error);
-    return res.status(401).json({ error: 'Unauthorized' });
+    console.error('JWT verification failed:', error);
+    return res.status(401).json({ error: 'Invalid or expired token' });
   }
 };
 

@@ -1,17 +1,12 @@
 import {admin, auth, db} from '../database-config/database-config.js';
-import redisClient from '../database-config/redis-client.js';
-import jwt from 'jsonwebtoken';
 import querystring from 'querystring';
 import dotenv from 'dotenv';
 import fetch from 'node-fetch';
 import { OAuth2Client } from 'google-auth-library';
+import { generateAccessToken, generateRefreshToken } from '../utils/generateToken.js';
+import { v4 as uuidv4 } from 'uuid'
 
 dotenv.config();
-
-// Helper function to generate JWT
-const generateAccessToken = (uid) => {
-  return jwt.sign({ uid }, process.env.JWT_SECRET, { expiresIn: '1h' }); // Ensure you set JWT_SECRET in .env
-};
 
 const fetchToken = async (code) => {
   const url = 'https://oauth2.googleapis.com/token';
@@ -76,9 +71,9 @@ const signup = async (req, res) => {
     await db.collection('users').doc(userRecord.uid).set({
       email: userRecord.email,
       name: name,
-      profileUrl: '', // Placeholder for future use
-      college: '', // Placeholder for future use
-      year: null, // Placeholder for future use
+      profileUrl: '',
+      college: '',
+      year: null,
       createdAt: admin.firestore.FieldValue.serverTimestamp(),
       updatedAt: admin.firestore.FieldValue.serverTimestamp(),
     });
@@ -86,14 +81,31 @@ const signup = async (req, res) => {
     // Generate JWT Access Token
     const accessToken = generateAccessToken(userRecord.uid);
 
-    // Store access token in Redis with expiration (matching JWT)
-    await redisClient.setEx(userRecord.uid, 3600, accessToken); // 3600 seconds = 1 hour
+    const refreshToken = generateRefreshToken(uuidv4());
+
+    await db.collection('users').doc(userRecord.uid).collection('refreshTokens').doc(refreshToken).set({
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+    });
+
+    // Set JWT in HttpOnly, Secure cookie
+    res.cookie('token', accessToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production', // Set to true in production
+      maxAge: 3600000, // 1 hour in milliseconds
+      sameSite: 'strict',
+    });
+
+    res.cookie('refreshToken', refreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production', // Set to true in production
+      maxAge: 604800000, // 7 days in milliseconds
+      sameSite: 'strict',
+    });
 
     res.status(201).json({
       message: 'User created successfully!',
       email: userRecord.email,
-      uid: userRecord.uid,
-      accessToken,
+      // accessToken, // Optionally remove this for enhanced security
     });
   } catch (error) {
     console.error('Error during signup:', error);
@@ -133,14 +145,31 @@ const login = async (req, res) => {
     // Generate JWT Access Token
     const accessToken = generateAccessToken(localId);
 
-    // Store access token in Redis with expiration
-    await redisClient.setEx(localId, 3600, accessToken); // 1 hour
+    const refreshToken = generateRefreshToken(uuidv4());
+
+    await db.collection('users').doc(userRecord.uid).collection('refreshTokens').doc(refreshToken).set({
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+    });
+
+    // Set JWT in HttpOnly, Secure cookie
+    res.cookie('token', accessToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      maxAge: 3600000, // 1 hour in milliseconds
+      sameSite: 'strict',
+    });
+
+    res.cookie('refreshToken', refreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      maxAge: 604800000, // 7 days in milliseconds
+      sameSite: 'strict',
+    })
 
     res.status(200).json({
       message: 'User logged in successfully!',
       email: email,
-      uid: localId,
-      accessToken,
+      // accessToken, // Optionally remove this for enhanced security
     });
   } catch (error) {
     console.error('Error during login:', error);
@@ -179,13 +208,7 @@ const googleCallback = async (req, res) => {
 
   try {
     // Exchange authorization code for access token and ID token
-
-    console.log('code', code);
-    
-
     const tokenResponse = await fetchToken(code);
-
-    console.log('tokenResponse', tokenResponse);
 
     const { id_token } = tokenResponse;
 
@@ -193,22 +216,23 @@ const googleCallback = async (req, res) => {
       return res.status(400).json({ error: 'ID token not provided' });
     }
 
-    // Verify ID token with Firebase Admin SDK
+    // Verify ID token with Google
     const decodedToken = await verifyGoogleIdToken(id_token);
 
     if (!decodedToken) {
       return res.status(400).json({ error: 'Invalid ID token' });
     }
 
-    console.log('decodedToken', decodedToken);  
     const { email, name, picture } = decodedToken;
 
-    // Check if user exists in Firestore, if not, create
+    // Check if user exists in Firestore using email, if not, create
     const userRef = db.collection('users').where('email', '==', email).limit(1);
-    let userDoc = await userRef.get();
+    const userSnapshot = await userRef.get();
 
-    if (!userDoc.exists) {
-      userDoc = await db.collection('users').add({
+    let userId;
+    if (userSnapshot.empty) {
+      // Create new user
+      const newUserRef = await db.collection('users').add({
         email,
         name,
         profileUrl: picture,
@@ -217,16 +241,40 @@ const googleCallback = async (req, res) => {
         createdAt: admin.firestore.FieldValue.serverTimestamp(),
         updatedAt: admin.firestore.FieldValue.serverTimestamp(),
       });
+      userId = newUserRef.id;
+    } else {
+      userId = userSnapshot.docs[0].id;
     }
 
-    // Generate your own JWT for session management
-    const customToken = generateAccessToken(userDoc.uid);
+    // Generate JWT Access Token
+    const accessToken = generateAccessToken(userId);
 
-    res.status(200).json({ 
+    const refreshToken = generateRefreshToken(uuidv4());
+
+    await db.collection('users').doc(userId).collection('refreshTokens').doc(refreshToken).set({
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+    });
+
+    // Set JWT in HttpOnly, Secure cookie
+    res.cookie('token', accessToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production', // Set to true in production
+      maxAge: 3600000, // 1 hour in milliseconds
+      sameSite: 'strict',
+    });
+
+    res.cookie('refreshToken', refreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production', // Set to true in production
+      maxAge: 604800000, // 7 days in milliseconds
+      sameSite: 'strict',
+    });
+
+    res.status(200).json({
       message: 'Google login successful',
       name: name,
       email: email,
-      token: customToken 
+      // token: accessToken, // Optionally remove this for enhanced security
     });
   } catch (error) {
     console.error('Error during Google OAuth callback:', error.response?.data || error.message);
@@ -234,6 +282,96 @@ const googleCallback = async (req, res) => {
   }
 };
 
+const logout = async (req, res) => {
+  const { uid } = req.user;
+  const { refreshToken } = req.cookies;
 
+  try {
+    if (refreshToken) {
+      // Remove the specific refresh token from Firestore
+      await db.collection('users').doc(uid).collection('refreshTokens').doc(refreshToken).delete();
+    }
 
-export { signup, login, googleLogin, googleCallback };
+    // Clear cookies
+    res.clearCookie('token', {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+    });
+    res.clearCookie('refreshToken', {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+    });
+
+    res.status(200).json({ message: 'User logged out successfully!' });
+  } catch (error) {
+    console.error('Error during logout:', error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+};
+
+const refreshToken = async (req, res) => {
+  const { refreshToken } = req.cookies;
+
+  if (!refreshToken) {
+    return res.status(401).json({ error: 'Refresh token missing' });
+  }
+
+  try {
+    // Find user by refresh token
+    const userQuery = await db.collection('users')
+      .where('refreshTokens', 'array-contains', refreshToken)
+      .limit(1)
+      .get();
+
+    if (userQuery.empty) {
+      return res.status(403).json({ error: 'Invalid refresh token' });
+    }
+
+    const userDoc = userQuery.docs[0];
+    const uid = userDoc.id;
+
+    const newAccessToken = generateAccessToken(uid);
+
+    const newRefreshToken = generateRefreshToken(uuidv4());
+
+    const userRef = db.collection('users').doc(uid).collection('refreshTokens').doc(refreshToken);
+    const refreshTokenDoc = await userRef.get();
+
+    if (!refreshTokenDoc.exists) {
+      return res.status(403).json({ error: 'Refresh token not found' });
+    }
+
+    // Delete old refresh token
+    await userRef.delete();
+
+    // Add new refresh token
+    await db.collection('users').doc(uid).collection('refreshTokens').doc(newRefreshToken).set({
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+    });
+
+    // Set new Access Token in cookie
+    res.cookie('token', newAccessToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      maxAge: 3600000, // 1 hour
+      sameSite: 'strict',
+    });
+
+    // Set new Refresh Token in cookie
+    res.cookie('refreshToken', newRefreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      maxAge: 7 * 24 * 3600000, // 7 days
+      sameSite: 'strict',
+    });
+
+    res.status(200).json({ message: 'Token refreshed successfully' });
+  } catch (error) {
+    console.error('Error refreshing token:', error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+};
+
+export { signup, login, googleLogin, googleCallback, logout, refreshToken };
