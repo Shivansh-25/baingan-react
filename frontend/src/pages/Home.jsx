@@ -8,6 +8,7 @@ import NewsIcon from "@/icons/newsIcon";
 import FileShareIcon from "@/icons/fileShareIcon";
 import ChatIcon from "@/icons/chatIcon";
 import NetworkIcon from "@/icons/networkIcon";
+import { Link } from "react-router-dom";
 
 const Home = () => {
   return (

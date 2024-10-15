@@ -1,4 +1,5 @@
-import '@/styles/fonts.css'
+import "@/styles/fonts.css";
+import {Link} from "react-router-dom";
 
 export default function Navbar() {
   return (
@@ -10,9 +11,11 @@ export default function Navbar() {
         <button>
           <p>Features</p>
         </button>
-        <button>
-          <p>Sign in</p>
-        </button>
+        <Link to="/login">
+          <button>
+            <p>Sign in</p>
+          </button>
+        </Link>
       </div>
     </nav>
   );
