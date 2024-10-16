@@ -152,7 +152,7 @@ const login = async (req, res) => {
 
     const refreshToken = generateRefreshToken(uuidv4());
 
-    await db.collection('users').doc(userRecord.uid).collection('refreshTokens').doc(refreshToken).set({
+    await db.collection('users').doc(localId).collection('refreshTokens').doc(refreshToken).set({
       createdAt: admin.firestore.FieldValue.serverTimestamp(),
     });
 
