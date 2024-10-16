@@ -1,24 +1,28 @@
 import "@/styles/basic.css";
 import "@/styles/fonts.css";
-import Navbar from "@/components/navbar/Navbar.jsx";
+import Navbar from "@/components/navbar/Navbar";
 import { FcGoogle } from "react-icons/fc";
 import { useState } from "react";
 import { Link } from "react-router-dom";
 
-const Home = () => {
-  const [userData, setUserData] = useState({ email: "", password: "" });
+const Signup = () => {
+  const [userData, setUserData] = useState({
+    name: "",
+    email: "",
+    password: "",
+    confirmPassword: "",
+  });
   const [error, setError] = useState(null);
-  const [forgotPassword, setForgotPassword] = useState(false);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
     setUserData({ ...userData, [name]: value });
   };
 
-  const handleLogin = async (e) => {
+  const handleSignup = async (e) => {
     e.preventDefault();
 
-    const response = await fetch("/api/auth/login", {
+    const response = await fetch("/api/auth/signup", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(userData),
@@ -27,12 +31,14 @@ const Home = () => {
     const data = await response.json();
 
     if (response.ok) {
-      console.log("User logged in:", data);
-      //router issue
+      console.log("User signed up:", data);
       //router.push("/home");
     } else {
-      console.log("Error:", data.error);
       setError(data.error);
+    }
+    if (data.error == "User already registered") {
+      // router issue
+      //router.push("/auth/login");
     }
   };
 
@@ -50,12 +56,20 @@ const Home = () => {
         <div className="flex flex-col gap-5 justify-center items-center katibeh text-white">
           <div className="bg-[#2a2626] flex flex-col p-7 rounded-[20px] w-[20vw] text-white items-center justify-center">
             <div className="text-3xl mb-3 flex flex-col items-center justify-center">
-              <h2>Sign In</h2>
+              <h2>Sign Up</h2>
               <h3 className="text-xl mt-2">
                 Welcome to <span className="text-purple-700">Baingan</span>
               </h3>
             </div>
             <div className="flex w-[100%] mt-3 flex-col items-center justify-center gap-5">
+              <input
+                type="text"
+                placeholder="Name"
+                name="name"
+                className="bg-[#373333] rounded-xl p-2 w-[100%]"
+                value={userData.name}
+                onChange={handleChange}
+              />
               <input
                 type="email"
                 placeholder="Email"
@@ -72,16 +86,22 @@ const Home = () => {
                 value={userData.password}
                 onChange={handleChange}
               />
-            </div>
-            <div className="flex justify-end mt-2 p-2 w-full text-xs">
-              <button>Forgot Password</button>
+
+              <input
+                type="password"
+                placeholder="Confirm Password"
+                name="confirmPassword"
+                className="bg-[#373333] rounded-xl p-2 w-[100%] "
+                value={userData.confirmPassword}
+                onChange={handleChange}
+              />
             </div>
             <div className="flex flex-col items-center justify-center mt-5">
               <button
                 className="bg-[#1e1515] p-3 pl-7 pr-7 rounded-xl mb-1 text-white"
-                onClick={handleLogin}
+                onClick={handleSignup}
               >
-                Login
+                Sign up
               </button>
               <div className="flex items-center mt-1 bg-[#1e1515] p-3 rounded-xl">
                 <div className="flex items-center justify-center">
@@ -91,13 +111,9 @@ const Home = () => {
               </div>
               <div className="mt-4">
                 <p>
-                  <Link to="/signup">
-                    <span
-                      className="text-purple-500 cursor-pointer"
-                      //router issue
-                      //onClick={() => router.push("/auth/signup")}
-                    >
-                      Sign up
+                  <Link to="/login">
+                    <span className="text-purple-500 cursor-pointer">
+                      Sign in
                     </span>
                   </Link>
                   {"  "}
@@ -125,4 +141,4 @@ const Home = () => {
   );
 };
 
-export default Home;
+export default Signup;
