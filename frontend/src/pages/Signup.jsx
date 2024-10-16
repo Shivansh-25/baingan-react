@@ -45,7 +45,7 @@ const Signup = () => {
   return (
     <div className="flex flex-col">
       <Navbar />
-      <image
+      <img
         src="/baingan1.png"
         width={400}
         height={300}
