@@ -67,13 +67,18 @@ const signup = async (req, res) => {
       disabled: false,
     });
 
-    // Add additional user data to Firestore
     await db.collection('users').doc(userRecord.uid).set({
       email: userRecord.email,
       name: name,
+      username: '',
+      contact: '',
+      collegeMail: '',
+      isAlumni: false,
+      isDeleted: false,
       profileUrl: '',
       college: '',
       year: null,
+      semester: null,
       createdAt: admin.firestore.FieldValue.serverTimestamp(),
       updatedAt: admin.firestore.FieldValue.serverTimestamp(),
     });
@@ -233,11 +238,17 @@ const googleCallback = async (req, res) => {
     if (userSnapshot.empty) {
       // Create new user
       const newUserRef = await db.collection('users').add({
-        email,
-        name,
+        email: email,
+        name: name,
+        username: '',
+        contact: '',
+        collegeMail: '',
+        isAlumni: false,
+        isDeleted: false,
         profileUrl: picture,
         college: '',
         year: null,
+        semester: null,
         createdAt: admin.firestore.FieldValue.serverTimestamp(),
         updatedAt: admin.firestore.FieldValue.serverTimestamp(),
       });
