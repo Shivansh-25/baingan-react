@@ -26,8 +26,14 @@ const authMiddleware = async (req, res, next) => {
     req.user = { uid };
     next();
   } catch (error) {
-    console.error('JWT verification failed:', error);
-    return res.status(401).json({ error: 'Invalid or expired token' });
+    if (error.name === 'TokenExpiredError') {
+      return res.status(401).json({ error: 'Token expired' });
+    } else if (error.name === 'JsonWebTokenError') {
+      return res.status(401).json({ error: 'Invalid token' });
+    } else {
+      console.error('JWT verification failed:', error);
+      return res.status(401).json({ error: 'Authentication failed' });
+    }
   }
 };
 

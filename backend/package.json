@@ -21,6 +21,7 @@
     "google-auth-library": "^9.14.2",
     "jsonwebtoken": "^9.0.2",
     "node-fetch": "^3.3.2",
+    "nodemailer": "^6.9.15",
     "nodemon": "^3.1.7",
     "querystring": "^0.2.1",
     "redis": "^4.7.0",

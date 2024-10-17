@@ -5,6 +5,7 @@ import fetch from 'node-fetch';
 import { OAuth2Client } from 'google-auth-library';
 import { generateAccessToken, generateRefreshToken } from '../utils/generateToken.js';
 import { v4 as uuidv4 } from 'uuid'
+import transporter from '../utils/transporter.js';
 
 dotenv.config();
 
@@ -52,6 +53,10 @@ async function verifyGoogleIdToken(idToken) {
   }
 }
 
+const generateOTP = () => {
+  return Math.floor(100000 + Math.random() * 900000).toString();
+};
+
 
 // Signup Controller
 const signup = async (req, res) => {
@@ -67,7 +72,7 @@ const signup = async (req, res) => {
       disabled: false,
     });
 
-    await db.collection('users').doc(userRecord.uid).set({
+    const userResponse = await db.collection('users').doc(userRecord.uid).set({
       email: userRecord.email,
       name: name,
       username: '',
@@ -88,9 +93,11 @@ const signup = async (req, res) => {
 
     const refreshToken = generateRefreshToken(uuidv4());
 
-    await db.collection('users').doc(userRecord.uid).collection('refreshTokens').doc(refreshToken).set({
+    const tokenResponse = await db.collection('users').doc(userRecord.uid).collection('refreshTokens').doc(refreshToken).set({
       createdAt: admin.firestore.FieldValue.serverTimestamp(),
     });
+
+    Promise.all([userResponse, tokenResponse]);
 
     // Set JWT in HttpOnly, Secure cookie
     res.cookie('token', accessToken, {
@@ -198,8 +205,6 @@ const googleLogin = (req, res) => {
   };
 
   const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?${querystring.stringify(params)}`;
-
-  console.log('authUrl', authUrl);
 
   res.redirect(authUrl);
 };
@@ -385,4 +390,74 @@ const refreshToken = async (req, res) => {
   }
 };
 
-export { signup, login, googleLogin, googleCallback, logout, refreshToken };
+const sendVerificationEmail = async (req, res) => {
+  const { email } = req.body;
+
+  try {
+
+    const otp = generateOTP();
+
+    const user = await auth.getUserByEmail(email);
+
+    const name = user.displayName;
+
+    await db.collection('otp').add({
+      email,
+      otp,
+      createdAt: admin.firestore.FieldValue.serverTimestamp()
+    })
+
+    await transporter.sendMail({
+      from: process.env.EMAIL_USER,
+      to: email,
+      subject: 'Email Verification',
+      text: `Hello ${name}, \n Your OTP is ${otp} \n\n Regards, \n Team`,
+    })
+
+    res.status(200).json({ message: 'Verification email sent successfully' });
+  } catch (error) {
+    console.error('Error sending verification email:', error);
+    res.status(500).json({ error: 'Error sending verification email' });
+  }
+};
+
+const verifyOtp = async (req, res) => {
+  const { email, otp } = req.body;
+
+  try {
+    const otpRef = db.collection('otp')
+      .where('email', '==', email)
+      .where('otp', '==', otp)
+      .limit(1);
+
+    const otpSnapshot = await otpRef.get();
+
+    if (otpSnapshot.empty) {
+      return res.status(400).json({ error: 'Invalid OTP' });
+    }
+
+    const otpDoc = otpSnapshot.docs[0];
+    const otpData = otpDoc.data();
+    const otpId = otpDoc.id;
+
+    // Check if the OTP has expired
+    const currentTime = new Date().getTime();
+    const otpCreationTime = otpData.createdAt.toMillis();
+    const otpExpiryDuration = 3 * 60 * 1000; // OTP expires in 3 minutes
+
+    if (currentTime - otpCreationTime > otpExpiryDuration) {
+      await db.collection('otp').doc(otpId).delete(); // Remove expired OTP
+      return res.status(400).json({ error: 'OTP has expired' });
+    }
+
+    await db.collection('otp').doc(otpId).delete();
+
+    res.status(200).json({ message: 'Email verified successfully' });
+  } catch (error) {
+    console.error('Error verifying OTP:', error);
+    res.status(500).json({ error: 'Error verifying OTP' });
+  }
+};
+
+
+export { signup, login, googleLogin, googleCallback, logout, refreshToken, sendVerificationEmail, verifyOtp };
