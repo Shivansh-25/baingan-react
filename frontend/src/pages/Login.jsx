@@ -3,9 +3,10 @@ import "@/styles/fonts.css";
 import Navbar from "@/components/navbar/Navbar.jsx";
 import { FcGoogle } from "react-icons/fc";
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
-const Home = () => {
+const Landing = () => {
+  const navigate = useNavigate();
   const [userData, setUserData] = useState({ email: "", password: "" });
   const [error, setError] = useState(null);
   const [forgotPassword, setForgotPassword] = useState(false);
@@ -17,8 +18,9 @@ const Home = () => {
 
   const handleLogin = async (e) => {
     e.preventDefault();
+    const apiUrl = import.meta.env.VITE_API_URL;
 
-    const response = await fetch("/api/auth/login", {
+    const response = await fetch(`${apiUrl}/auth/login`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(userData),
@@ -27,9 +29,8 @@ const Home = () => {
     const data = await response.json();
 
     if (response.ok) {
-      console.log("User logged in:", data);
-      //router issue
-      //router.push("/home");
+      navigate(`/home`);
+
     } else {
       console.log("Error:", data.error);
       setError(data.error);
@@ -39,16 +40,16 @@ const Home = () => {
   return (
     <div className="flex flex-col">
       <Navbar />
-      <img
-        src="/baingan1.png"
-        width={400}
-        height={300}
-        alt="Baingan"
-        className="absolute z-10 top-0 left-0"
-      />
-      <div className="flex flex-col justify-center items-center h-[85vh]">
-        <div className="flex flex-col gap-5 justify-center items-center katibeh text-white">
-          <div className="bg-[#2a2626] flex flex-col p-7 rounded-[20px] w-[20vw] text-white items-center justify-center">
+      <div className="absolute z-10 top-0 left-0">
+        <img
+          src="/baingan1.png"
+          alt="Baingan"
+          className="lg:w-[100%] lg:h-[100%] md:h-[90%] md:w-[90%] h-[70%] w-[70%]"
+        />
+      </div>
+      <div className="flex flex-col justify-center items-center h-[85vh] w-full">
+        <div className="flex flex-col gap-5 justify-center items-center katibeh text-white w-full">
+          <div className="bg-[#2a2626] flex flex-col p-7 outline-white rounded-[20px] w-[40%] md:w-[33%] lg:w-[25%] text-white items-center justify-center">
             <div className="text-3xl mb-3 flex flex-col items-center justify-center">
               <h2>Sign In</h2>
               <h3 className="text-xl mt-2">
@@ -125,4 +126,4 @@ const Home = () => {
   );
 };
 
-export default Home;
+export default Landing;
