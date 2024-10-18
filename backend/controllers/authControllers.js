@@ -117,7 +117,7 @@ const signup = async (req, res) => {
     res.status(201).json({
       message: 'User created successfully!',
       email: userRecord.email,
-      // accessToken, // Optionally remove this for enhanced security
+      token: accessToken, // Optionally remove this for enhanced security
     });
   } catch (error) {
     console.error('Error during signup:', error);
@@ -181,7 +181,7 @@ const login = async (req, res) => {
     res.status(200).json({
       message: 'User logged in successfully!',
       email: email,
-      // accessToken, // Optionally remove this for enhanced security
+      token: accessToken, // Optionally remove this for enhanced security
     });
   } catch (error) {
     console.error('Error during login:', error);
@@ -288,9 +288,8 @@ const googleCallback = async (req, res) => {
 
     res.status(200).json({
       message: 'Google login successful',
-      name: name,
       email: email,
-      // token: accessToken, // Optionally remove this for enhanced security
+      token: accessToken, // Optionally remove this for enhanced security
     });
   } catch (error) {
     console.error('Error during Google OAuth callback:', error.response?.data || error.message);
@@ -383,7 +382,7 @@ const refreshToken = async (req, res) => {
       sameSite: 'strict',
     });
 
-    res.status(200).json({ message: 'Token refreshed successfully' });
+    res.status(200).json({ message: 'Token refreshed successfully', token: newAccessToken });
   } catch (error) {
     console.error('Error refreshing token:', error);
     res.status(500).json({ error: 'Internal Server Error' });
