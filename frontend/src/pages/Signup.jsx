@@ -3,9 +3,11 @@ import "@/styles/fonts.css";
 import Navbar from "@/components/navbar/Navbar";
 import { FcGoogle } from "react-icons/fc";
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
 const Signup = () => {
+  const navigate = useNavigate();
+
   const [userData, setUserData] = useState({
     name: "",
     email: "",
@@ -21,8 +23,10 @@ const Signup = () => {
 
   const handleSignup = async (e) => {
     e.preventDefault();
+    const apiUrl = import.meta.env.VITE_API_URL;
+    console.log(apiUrl);
 
-    const response = await fetch("/api/auth/signup", {
+    const response = await fetch(`${apiUrl}/auth/signup`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(userData),
@@ -32,7 +36,7 @@ const Signup = () => {
 
     if (response.ok) {
       console.log("User signed up:", data);
-      //router.push("/home");
+      navigate(`/home`);
     } else {
       setError(data.error);
     }
@@ -45,16 +49,16 @@ const Signup = () => {
   return (
     <div className="flex flex-col">
       <Navbar />
-      <img
-        src="/baingan1.png"
-        width={400}
-        height={300}
-        alt="Baingan"
-        className="absolute z-10 top-0 left-0"
-      />
-      <div className="flex flex-col justify-center items-center h-[85vh]">
-        <div className="flex flex-col gap-5 justify-center items-center katibeh text-white">
-          <div className="bg-[#2a2626] flex flex-col p-7 rounded-[20px] w-[20vw] text-white items-center justify-center">
+      <div className="absolute z-10 top-0 left-0">
+        <img
+          src="/baingan1.png"
+          alt="Baingan"
+          className="lg:w-[100%] lg:h-[100%] md:h-[90%] md:w-[90%] h-[70%] w-[70%]"
+        />
+      </div>
+      <div className="flex flex-col justify-center items-center h-[85vh] w-full">
+        <div className="flex flex-col gap-5 justify-center items-center katibeh text-white w-full">
+          <div className="bg-[#2a2626] flex flex-col p-7 outline-white rounded-[20px] w-[40%] md:w-[33%] lg:w-[25%] text-white items-center justify-center">
             <div className="text-3xl mb-3 flex flex-col items-center justify-center">
               <h2>Sign Up</h2>
               <h3 className="text-xl mt-2">
@@ -94,6 +98,12 @@ const Signup = () => {
                 className="bg-[#373333] rounded-xl p-2 w-[100%] "
                 value={userData.confirmPassword}
                 onChange={handleChange}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    handleSignup(e);
+                  }
+                }}
               />
             </div>
             <div className="flex flex-col items-center justify-center mt-5">

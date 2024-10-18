@@ -30,7 +30,6 @@ const Landing = () => {
 
     if (response.ok) {
       navigate(`/home`);
-
     } else {
       console.log("Error:", data.error);
       setError(data.error);
@@ -72,6 +71,12 @@ const Landing = () => {
                 className="bg-[#373333] rounded-xl p-2 w-[100%] "
                 value={userData.password}
                 onChange={handleChange}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault()
+                    handleLogin(e);
+                  }
+                }}
               />
             </div>
             <div className="flex justify-end mt-2 p-2 w-full text-xs">
@@ -93,11 +98,7 @@ const Landing = () => {
               <div className="mt-4">
                 <p>
                   <Link to="/signup">
-                    <span
-                      className="text-purple-500 cursor-pointer"
-                      //router issue
-                      //onClick={() => router.push("/auth/signup")}
-                    >
+                    <span className="text-purple-500 cursor-pointer">
                       Sign up
                     </span>
                   </Link>
