@@ -1,6 +1,6 @@
 import "@/styles/basic.css"
 import "@/styles/fonts.css";
-import Navbar from "@/components/navbar/Navbar.jsx";
+import Navbar from "@/components/navbar/navbar.jsx";
 import Card2 from "../components/cards/homecard.jsx"
 import CommunityIcon from "@/icons/communityIcon"
 import ClubsIcon from "@/icons/clubsIcon";

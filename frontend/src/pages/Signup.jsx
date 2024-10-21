@@ -1,6 +1,6 @@
 import "@/styles/basic.css";
 import "@/styles/fonts.css";
-import Navbar from "@/components/navbar/Navbar";
+import Navbar from "@/components/navbar/navbar";
 import { FcGoogle } from "react-icons/fc";
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
