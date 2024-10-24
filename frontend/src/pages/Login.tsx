@@ -73,7 +73,7 @@ const Landing = () => {
                 onChange={handleChange}
                 onKeyDown={(e) => {
                   if (e.key === "Enter") {
-                    e.preventDefault()
+                    e.preventDefault();
                     handleLogin(e);
                   }
                 }}
