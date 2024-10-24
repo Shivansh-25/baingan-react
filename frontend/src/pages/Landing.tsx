@@ -1,31 +1,30 @@
-import "@/styles/basic.css"
+import "@/styles/basic.css";
 import "@/styles/fonts.css";
-import Navbar from "@/components/navbar/navbar.jsx";
-import Card2 from "../components/cards/homecard.jsx"
-import CommunityIcon from "@/icons/communityIcon"
+import Navbar from "@/components/navbar/Navbar.tsx";
+import Card2 from "@/components/cards/Homecard.tsx";
+import CommunityIcon from "@/icons/communityIcon";
 import ClubsIcon from "@/icons/clubsIcon";
 import NewsIcon from "@/icons/newsIcon";
 import FileShareIcon from "@/icons/fileShareIcon";
 import ChatIcon from "@/icons/chatIcon";
 import NetworkIcon from "@/icons/networkIcon";
-import { Link } from "react-router-dom";
 
-const Landing = () =>{
+const Landing = () => {
   return (
     <div className="flex flex-col">
       <Navbar />
-      <img
-        src="/baingan1.png"
-        width={400}
-        height={300}
-        alt="Baingan"
-        className="absolute z-10 top-0 left-0"
-      />
+      <div className="absolute z-10 top-0 left-0">
+        <img
+          src="/baingan1.png"
+          alt="Baingan"
+          className="lg:w-[100%] lg:h-[100%] md:h-[90%] md:w-[90%] h-[70%] w-[70%]"
+        />
+      </div>
       <div className="flex flex-col gap-5 justify-center items-center h-screen katibeh text-white">
-        <div className="text-6xl">
+        <div className="text-2xl sm:text-4xl md:text-4xl lg:text-4xl">
           <h1>Unlocking your campus experience</h1>
         </div>
-        <div className="text-4xl">
+        <div className="sm:text-2xl lg:text-3xl">
           <h2>Academics, Clubs, Resources - all in one place</h2>
         </div>
         <button className="katibeh bg-[#8c40ba] p-5 rounded-[20px] text-white">
@@ -74,7 +73,7 @@ const Landing = () =>{
         <Card2
           title="Alumni Network"
           text="Tap into a robust network of program alumni to build professional connections and gain valuable insights into career paths. Access mentorship opportunities, receive guidance on internships, jobs, and career development, and expand your professional circle with alumni who share your educational background and aspirations."
-        icon={NetworkIcon}
+          icon={NetworkIcon}
         />
       </div>
     </div>
